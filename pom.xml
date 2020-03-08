@@ -47,6 +47,8 @@
   <properties>
     <core.version>0.20.1</core.version>
     <serialization.version>0.3.0</serialization.version>
+    
+    <sonar.test.exclusions>**/src/test/**/*</sonar.test.exclusions>
   </properties>
   
   <dependencyManagement>
