@@ -7,7 +7,6 @@ import java.util.LinkedList;
 import java.util.List;
 
 import net.lecousin.framework.application.libraries.LibraryManagementException;
-import net.lecousin.framework.concurrent.Executable;
 import net.lecousin.framework.concurrent.async.AsyncSupplier;
 import net.lecousin.framework.concurrent.threads.Task;
 import net.lecousin.framework.concurrent.threads.Task.Priority;
@@ -30,31 +29,26 @@ public class MavenLocalRepository implements MavenRepository {
 	private boolean snapshotsEnabled;
 	
 	@Override
-	@SuppressWarnings("java:S1604")
 	public AsyncSupplier<List<String>, NoException> getAvailableVersions(String groupId, String artifactId, Priority priority) {
-		return Task.file(dir, "Search artifact versions in local Maven repository", priority, new Executable<List<String>, NoException>() {
-			@Override
-			public List<String> execute() {
-				File d = new File(dir, groupId.replace('.', '/'));
-				if (!d.exists()) return null;
-				d = new File(d, artifactId);
-				if (!d.exists()) return null;
-				File[] files = d.listFiles();
-				if (files == null) return null;
-				List<String> versions = new LinkedList<>();
-				for (File f : files) {
-					if (!f.isDirectory()) continue;
-					File p = new File(f, artifactId + '-' + f.getName() + ".pom");
-					if (!p.exists()) continue;
-					versions.add(f.getName());
-				}
-				return versions;
+		return Task.file(dir, "Search artifact versions in local Maven repository", priority, (Task<List<String>, NoException> t) -> {
+			File d = new File(dir, groupId.replace('.', '/'));
+			if (!d.exists()) return null;
+			d = new File(d, artifactId);
+			if (!d.exists()) return null;
+			File[] files = d.listFiles();
+			if (files == null) return null;
+			List<String> versions = new LinkedList<>();
+			for (File f : files) {
+				if (!f.isDirectory()) continue;
+				File p = new File(f, artifactId + '-' + f.getName() + ".pom");
+				if (!p.exists()) continue;
+				versions.add(f.getName());
 			}
+			return versions;
 		}).start().getOutput();
 	}
 	
 	@Override
-	@SuppressWarnings("java:S1604")
 	public AsyncSupplier<MavenPOM, LibraryManagementException> load(
 		String groupId, String artifactId, String version, MavenPOMLoader pomLoader, Priority priority
 	) {
@@ -66,7 +60,7 @@ public class MavenLocalRepository implements MavenRepository {
 				return new AsyncSupplier<>(null, null);
 		}
 		AsyncSupplier<MavenPOM, LibraryManagementException> result = new AsyncSupplier<>();
-		Task.file(dir, "Search Maven POM in local repository", priority, () -> {
+		Task.file(dir, "Search Maven POM in local repository", priority, t -> {
 			File d = new File(dir, groupId.replace('.', '/'));
 			if (d.exists()) {
 				d = new File(d, artifactId);
@@ -101,16 +95,11 @@ public class MavenLocalRepository implements MavenRepository {
 	}
 	
 	@Override
-	@SuppressWarnings("java:S1604")
 	public AsyncSupplier<File, IOException> loadFile(
 		String groupId, String artifactId, String version, String classifier, String type, Priority priority
 	) {
-		return Task.file(dir, "Search file in Maven repository", priority, new Executable<File, IOException>() {
-			@Override
-			public File execute() {
-				return loadFileSync(groupId, artifactId, version, classifier, type);
-			}
-		}).start().getOutput();
+		return Task.file(dir, "Search file in Maven repository", priority,
+			(Task<File, IOException> t) -> loadFileSync(groupId, artifactId, version, classifier, type)).start().getOutput();
 	}
 	
 	@Override

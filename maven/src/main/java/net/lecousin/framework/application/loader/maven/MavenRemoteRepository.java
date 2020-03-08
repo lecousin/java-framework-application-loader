@@ -91,7 +91,7 @@ public class MavenRemoteRepository implements MavenRepository {
 			bio = new SimpleBufferedReadable(io, 8192);
 		AsyncSupplier<XMLStreamReader, Exception> start = XMLStreamReader.start(bio, 5000, 4, false);
 		AsyncSupplier<List<String>, NoException> result = new AsyncSupplier<>();
-		start.thenStart(Task.cpu("Read maven-metadata.xml", priority, () -> {
+		start.thenStart(Task.cpu("Read maven-metadata.xml", priority, t -> {
 			try {
 				XMLStreamReader xml = start.getResult();
 				while (!Type.START_ELEMENT.equals(xml.event.type)) xml.next();

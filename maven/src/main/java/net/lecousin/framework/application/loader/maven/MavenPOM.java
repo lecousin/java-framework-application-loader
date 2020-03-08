@@ -66,7 +66,7 @@ public class MavenPOM implements LibraryDescriptor {
 			return new AsyncSupplier<>(null, new MavenPOMException(pomFile, e));
 		}
 		@SuppressWarnings("unchecked")
-		Task<Void, NoException> task = Task.cpu(LOAD + pomFile, priority, () -> {
+		Task<Void, NoException> task = Task.cpu(LOAD + pomFile, priority, t -> {
 			AsyncSupplier<? extends IO.Readable.Buffered, IOException> readFile;
 			int bufSize;
 			if (fileIO instanceof IO.KnownSize) {
@@ -86,7 +86,7 @@ public class MavenPOM implements LibraryDescriptor {
 				readFile = IOUtil.readFullyAsync(fileIO, 4096);
 			}
 			MavenPOM pom = new MavenPOM(pomLoader, pomFile);
-			readFile.thenStart(LOAD + pomFile, priority, () -> {
+			readFile.thenStart(LOAD + pomFile, priority, (Task<Void, NoException> taskCtx) -> {
 				fileIO.closeAsync();
 				if (readFile.hasError()) {
 					result.error(new MavenPOMException(pomFile, readFile.getError()));
@@ -394,7 +394,7 @@ public class MavenPOM implements LibraryDescriptor {
 		
 		@Override
 		@SuppressWarnings("squid:S3776") // complexity
-		public Void execute() throws LibraryManagementException {
+		public Void execute(Task<Void, LibraryManagementException> taskContext) throws LibraryManagementException {
 			if (startXMLReader.hasError()) throw new MavenPOMException(pomFile, startXMLReader.getError());
 			if (startXMLReader.isCancelled()) throw new MavenPOMException(pomFile, startXMLReader.getCancelEvent());
 			XMLStreamReader xml = startXMLReader.getResult();
@@ -742,7 +742,7 @@ public class MavenPOM implements LibraryDescriptor {
 		private AsyncSupplier<MavenPOM, LibraryManagementException> finalResult;
 		
 		@Override
-		public Void execute() {
+		public Void execute(Task<Void, NoException> t) {
 			Map<String, String> finalProperties = new HashMap<>();
 			if (parentLoading != null) {
 				if (parentLoading.hasError()) {
